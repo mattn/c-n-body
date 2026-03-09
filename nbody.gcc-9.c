@@ -34,10 +34,13 @@ static inline __m256d _mm256_rsqrt_pd(__m256d s) {
 
 // compute rsqrt of distance between each pair of bodies
 static inline void kernel(__m256d *r, double *w, __m256d *p) {
+    #pragma GCC unroll 4
     for (int i = 1, k = 0; i < N; i++)
+        #pragma GCC unroll 4
         for (int j = 0; j < i; j++, k++)
             r[k] = _mm256_sub_pd(p[i], p[j]);
-    
+
+    #pragma GCC unroll 3
     for (int k = 0; k < PAIRS; k += 4) {
         __m256d x0 = _mm256_mul_pd(r[k  ], r[k  ]);
         __m256d x1 = _mm256_mul_pd(r[k+1], r[k+1]);
@@ -111,6 +114,7 @@ static void advance(int n, double dt, double *m, __m256d *p, __m256d *v) {
     for (int s = 0; s < n; s++) {
         kernel(r, w, p);
 
+        #pragma GCC unroll 3
         for (int k = 0; k < PAIRS; k += 4) {
             __m256d x = _mm256_load_pd(w+k);
             __m256d y = _mm256_mul_pd(x, x);
@@ -119,7 +123,9 @@ static void advance(int n, double dt, double *m, __m256d *p, __m256d *v) {
             _mm256_store_pd(w+k, x);
         }
 
+        #pragma GCC unroll 4
         for (int i = 1, k = 0; i < N; i++)
+            #pragma GCC unroll 4
             for (int j = 0; j < i; j++, k++) {
                 __m256d t = _mm256_set1_pd(w[k]);
                 t = _mm256_mul_pd(r[k], t);
